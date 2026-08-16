@@ -155,7 +155,11 @@ def create_web_app():
     def api_history_clear():
         """API para limpiar el historial."""
         try:
-            # Implementar limpieza
+            # Limpiar la tabla de escaneos
+            conn = db._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM scans")
+            conn.commit()
             return jsonify({'success': True})
         except Exception as e:
             return jsonify({'error': str(e)}), 500
