@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Big Fish - Cuartel General</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fas fa-fish"></i>
+                <span>The Big Fish</span>
+                <small>v{{ config.version }}</small>
+            </div>
+            
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-section="dashboard">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+                <a href="#" class="nav-item" data-section="recon">
+                    <i class="fas fa-network-wired"></i> Fish-recon
+                </a>
+                <a href="#" class="nav-item" data-section="wifi">
+                    <i class="fas fa-wifi"></i> WifiCannon
+                </a>
+                <a href="#" class="nav-item" data-section="track">
+                    <i class="fas fa-map-marked-alt"></i> Fish-track
+                </a>
+                <a href="#" class="nav-item" data-section="nmap">
+                    <i class="fas fa-satellite-dish"></i> Fish-nmap
+                </a>
+                <a href="#" class="nav-item" data-section="history">
+                    <i class="fas fa-history"></i> Historial
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="status">
+                    <span class="status-dot online"></span>
+                    <span>Online</span>
+                </div>
+                <div class="version">v{{ config.version }}</div>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <h1 id="page-title">Dashboard</h1>
+                <div class="header-actions">
+                    <button class="btn-refresh" onclick="refreshData()">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <span id="last-update">Última actualización: --</span>
+                </div>
+            </header>
+            
+            <!-- Dashboard Section -->
+            <section id="section-dashboard" class="section active">
+                <!-- Stats Cards -->
+                <div class="stats-grid" id="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="total-scans">0</h3>
+                            <p>Escaneos Totales</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fas fa-wifi"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="total-handshakes">0</h3>
+                            <p>Handshakes Capturados</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple">
+                            <i class="fas fa-globe"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="total-subdomains">0</h3>
+                            <p>Subdominios Encontrados</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">
+                            <i class="fas fa-map-pin"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="total-locations">0</h3>
+                            <p>Ubicaciones Registradas</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Charts Row -->
+                <div class="charts-row">
+                    <div class="chart-card">
+                        <h3>Actividad por Herramienta</h3>
+                        <canvas id="toolsChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Actividad Semanal</h3>
+                        <canvas id="activityChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Running Processes -->
+                <div class="card">
+                    <h3><i class="fas fa-play-circle"></i> Procesos Activos</h3>
+                    <div id="running-processes">
+                        <p class="empty-message">No hay procesos activos</p>
+                    </div>
+                </div>
+                
+                <!-- Recent Activity -->
+                <div class="card">
+                    <h3><i class="fas fa-clock"></i> Actividad Reciente</h3>
+                    <div id="recent-activity">
+                        <p class="empty-message">No hay actividad reciente</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Fish-recon Section -->
+            <section id="section-recon" class="section">
+                <div class="tool-header">
+                    <h2><i class="fas fa-network-wired"></i> Fish-recon</h2>
+                    <p class="tool-description">Descubrimiento de subdominios y reconocimiento</p>
+                </div>
+                
+                <div class="tool-controls">
+                    <div class="input-group">
+                        <input type="text" id="recon-target" placeholder="ejemplo.com" class="input-field">
+                        <button class="btn-primary" onclick="launchRecon()">
+                            <i class="fas fa-play"></i> Iniciar Escaneo
+                        </button>
+                    </div>
+                    <div class="options-group">
+                        <label>
+                            <input type="checkbox" id="recon-dns" checked> DNS
+                        </label>
+                        <label>
+                            <input type="checkbox" id="recon-bruteforce" checked> Fuerza Bruta
+                        </label>
+                        <label>
+                            <input type="number" id="recon-threads" value="10" min="1" max="50"> Hilos
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="results-container" id="recon-results">
+                    <div class="result-placeholder">
+                        <i class="fas fa-search fa-3x"></i>
+                        <p>Los resultados aparecerán aquí</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- WifiCannon Section -->
+            <section id="section-wifi" class="section">
+                <div class="tool-header">
+                    <h2><i class="fas fa-wifi"></i> WifiCannon</h2>
+                    <p class="tool-description">Captura de handshakes y ataques WiFi</p>
+                </div>
+                
+                <div class="tool-controls">
+                    <div class="input-group">
+                        <input type="text" id="wifi-bssid" placeholder="BSSID (XX:XX:XX:XX:XX:XX)" class="input-field">
+                        <input type="number" id="wifi-channel" placeholder="Canal" class="input-field small">
+                        <input type="text" id="wifi-interface" value="wlan0" placeholder="Interfaz" class="input-field small">
+                    </div>
+                    <div class="button-group">
+                        <button class="btn-primary" onclick="launchWifi('scan')">
+                            <i class="fas fa-search"></i> Escanear
+                        </button>
+                        <button class="btn-success" onclick="launchWifi('capture')">
+                            <i class="fas fa-bullseye"></i> Capturar
+                        </button>
+                        <button class="btn-warning" onclick="launchWifi('wps')">
+                            <i class="fas fa-key"></i> WPS
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="results-container" id="wifi-results">
+                    <div class="result-placeholder">
+                        <i class="fas fa-wifi fa-3x"></i>
+                        <p>Redes y handshakes aparecerán aquí</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Fish-track Section -->
+            <section id="section-track" class="section">
+                <div class="tool-header">
+                    <h2><i class="fas fa-map-marked-alt"></i> Fish-track</h2>
+                    <p class="tool-description">Geolocalización y seguimiento</p>
+                </div>
+                
+                <div class="tool-controls">
+                    <div class="input-group">
+                        <input type="text" id="track-target" placeholder="IP, dominio o URL" class="input-field">
+                        <button class="btn-primary" onclick="launchTrack()">
+                            <i class="fas fa-play"></i> Rastrear
+                        </button>
+                    </div>
+                    <div class="options-group">
+                        <label>
+                            <input type="checkbox" id="track-ip" checked> IP
+                        </label>
+                        <label>
+                            <input type="checkbox" id="track-url" checked> URL
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="results-container" id="track-results">
+                    <div class="result-placeholder">
+                        <i class="fas fa-map fa-3x"></i>
+                        <p>Ubicaciones y mapa aparecerán aquí</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Fish-nmap Section -->
+            <section id="section-nmap" class="section">
+                <div class="tool-header">
+                    <h2><i class="fas fa-satellite-dish"></i> Fish-nmap</h2>
+                    <p class="tool-description">Escaneo de puertos y servicios</p>
+                </div>
+                
+                <div class="tool-controls">
+                    <div class="input-group">
+                        <input type="text" id="nmap-target" placeholder="IP o dominio" class="input-field">
+                        <select id="nmap-type" class="input-field">
+                            <option value="basic">Básico</option>
+                            <option value="full">Completo</option>
+                            <option value="stealth">Sigiloso</option>
+                            <option value="vuln">Vulnerabilidades</option>
+                        </select>
+                        <input type="text" id="nmap-ports" placeholder="Puertos (ej: 22,80,443)" class="input-field small">
+                    </div>
+                    <button class="btn-primary" onclick="launchNmap()">
+                        <i class="fas fa-play"></i> Escanear
+                    </button>
+                </div>
+                
+                <div class="results-container" id="nmap-results">
+                    <div class="result-placeholder">
+                        <i class="fas fa-satellite fa-3x"></i>
+                        <p>Puertos abiertos y servicios aparecerán aquí</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- History Section -->
+            <section id="section-history" class="section">
+                <div class="tool-header">
+                    <h2><i class="fas fa-history"></i> Historial</h2>
+                    <p class="tool-description">Registro completo de todas las operaciones</p>
+                </div>
+                
+                <div class="history-controls">
+                    <input type="text" id="history-filter" placeholder="Filtrar por herramienta o objetivo..." class="input-field">
+                    <button class="btn-secondary" onclick="filterHistory()">
+                        <i class="fas fa-filter"></i> Filtrar
+                    </button>
+                    <button class="btn-danger" onclick="clearHistory()">
+                        <i class="fas fa-trash"></i> Limpiar
+                    </button>
+                </div>
+                
+                <div class="table-container" id="history-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Herramienta</th>
+                                <th>Objetivo</th>
+                                <th>Estado</th>
+                                <th>Inicio</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-body">
+                            <tr>
+                                <td colspan="6" class="empty-message">No hay registros en el historial</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- Modals -->
+    <div id="modal-details" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal()">&times;</span>
+            <h2>Detalles del Escaneo</h2>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+    
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
