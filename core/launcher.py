@@ -52,18 +52,50 @@ class ToolLauncher:
             logger.error(f"❌ Tool no encontrada: {tool_path}")
             return {'error': f'Archivo de herramienta no encontrado: {tool_path}'}
         
-        # Construir comando
+        # Construir comando según la herramienta
         cmd = [sys.executable, str(tool_path)]
         
-        if target:
+        # Mapear opciones según la herramienta
+        if tool_name == 'fish_recon':
             cmd.extend(['--target', target])
+            if options:
+                if options.get('threads'):
+                    cmd.extend(['--threads', str(options['threads'])])
+                if options.get('use_dns') is False:
+                    cmd.append('--no-dns')
+                if options.get('use_bruteforce') is False:
+                    cmd.append('--no-bruteforce')
         
-        if options:
-            for key, value in options.items():
-                if isinstance(value, bool) and value:
-                    cmd.append(f'--{key}')
-                elif isinstance(value, (str, int)):
-                    cmd.extend([f'--{key}', str(value)])
+        elif tool_name == 'wifi_cannon':
+            if options and options.get('mode'):
+                cmd.extend(['--mode', options['mode']])
+            if target and target != 'all':
+                cmd.extend(['--bssid', target])
+            if options:
+                if options.get('interface'):
+                    cmd.extend(['--interface', options['interface']])
+                if options.get('channel'):
+                    cmd.extend(['--channel', str(options['channel'])])
+                if options.get('duration'):
+                    cmd.extend(['--duration', str(options['duration'])])
+        
+        elif tool_name == 'fish_track':
+            cmd.extend(['--target', target])
+            if options:
+                if options.get('use_ip') is False:
+                    cmd.append('--no-ip')
+                if options.get('use_url') is False:
+                    cmd.append('--no-url')
+        
+        elif tool_name == 'fish_nmap':
+            cmd.extend(['--target', target])
+            if options:
+                if options.get('scan_type'):
+                    cmd.extend(['--type', options['scan_type']])
+                if options.get('ports'):
+                    cmd.extend(['--ports', options['ports']])
+                if options.get('scripts'):
+                    cmd.extend(['--scripts', options['scripts']])
         
         # Preparar variables de entorno
         env = os.environ.copy()
@@ -72,6 +104,7 @@ class ToolLauncher:
         # Iniciar proceso
         try:
             logger.info(f"🚀 Lanzando {tool_name} - Target: {target}")
+            logger.info(f"🔧 Comando: {' '.join(cmd)}")
             
             # Guardar en DB
             scan_id = self.db.save_scan(
@@ -121,7 +154,8 @@ class ToolLauncher:
                     
                     for line in process.stderr:
                         stderr_lines.append(line)
-                        logger.warning(f"[{tool_name}] ERROR: {line.strip()}")
+                        if line.strip():
+                            logger.warning(f"[{tool_name}] ERROR: {line.strip()}")
                     
                     process.wait()
                     
