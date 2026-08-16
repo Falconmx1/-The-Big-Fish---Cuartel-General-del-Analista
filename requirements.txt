@@ -1,0 +1,12 @@
+# The Big Fish - Dependencias
+# ============================
+
+# Framework web para el panel
+Flask>=2.0.0
+
+# Para manipulación de datos y fechas
+python-dateutil>=2.8.0
+
+# (Opcional) Para gráficas en el futuro
+# plotly>=5.0.0
+# matplotlib>=3.5.0
