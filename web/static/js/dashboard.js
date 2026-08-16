@@ -71,7 +71,7 @@ function switchSection(section) {
 }
 
 // ============================================
-// API CALLS
+// API CALLS - CORREGIDO
 // ============================================
 
 async function apiCall(endpoint, method = 'GET', data = null) {
@@ -86,7 +86,7 @@ async function apiCall(endpoint, method = 'GET', data = null) {
             options.body = JSON.stringify(data);
         }
         
-        const response = await fetch(endpoint);
+        const response = await fetch(endpoint, options);
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
@@ -308,7 +308,7 @@ function updateRecentActivity(data) {
 }
 
 // ============================================
-// TOOL LAUNCHERS
+// TOOL LAUNCHERS - CORREGIDOS CON POST
 // ============================================
 
 async function launchRecon() {
@@ -620,7 +620,6 @@ document.addEventListener('keydown', function(e) {
 // AUTO-REFRESH TOGGLE
 // ============================================
 
-// Click on refresh button toggles spinning
 document.querySelector('.btn-refresh')?.addEventListener('click', function() {
     this.classList.add('spinning');
     setTimeout(() => {
