@@ -7,6 +7,7 @@ Manejo de la base de datos local SQLite para almacenar resultados.
 
 import sqlite3
 import json
+import threading
 from datetime import datetime
 from pathlib import Path
 import logging
@@ -21,22 +22,22 @@ class FishDatabase:
     def __init__(self, db_path="data/fish.db"):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(exist_ok=True)
-        self.connection = None
+        self._local = threading.local()
         self._initialize_db()
     
     def _get_connection(self):
-        """Obtiene o crea una conexión a la base de datos."""
-        if self.connection is None:
-            self.connection = sqlite3.connect(str(self.db_path))
-            self.connection.row_factory = sqlite3.Row
-        return self.connection
+        """Obtiene una conexión a la base de datos para el hilo actual."""
+        if not hasattr(self._local, 'connection') or self._local.connection is None:
+            self._local.connection = sqlite3.connect(str(self.db_path))
+            self._local.connection.row_factory = sqlite3.Row
+        return self._local.connection
     
     def _initialize_db(self):
         """Crea las tablas necesarias si no existen."""
         conn = self._get_connection()
         cursor = conn.cursor()
         
-        # Tabla de escaneos (recon, nmap, etc.)
+        # Tabla de escaneos
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS scans (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,7 +66,7 @@ class FishDatabase:
             )
         ''')
         
-        # Tabla de ubicaciones (Fish-track)
+        # Tabla de ubicaciones
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS locations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,7 +79,7 @@ class FishDatabase:
             )
         ''')
         
-        # Tabla de subdominios (Fish-recon)
+        # Tabla de subdominios
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS subdomains (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -95,10 +96,10 @@ class FishDatabase:
         logger.info("✅ Base de datos inicializada correctamente")
     
     def close(self):
-        """Cierra la conexión a la base de datos."""
-        if self.connection:
-            self.connection.close()
-            self.connection = None
+        """Cierra la conexión a la base de datos del hilo actual."""
+        if hasattr(self._local, 'connection') and self._local.connection:
+            self._local.connection.close()
+            self._local.connection = None
     
     # ========== MÉTODOS PARA ESCANEOS ==========
     
@@ -141,7 +142,6 @@ class FishDatabase:
         if not updates:
             return
         
-        # Si se completa, añadir end_time
         if status == 'completed':
             updates.append("end_time = ?")
             params.append(datetime.now().isoformat())
@@ -246,7 +246,6 @@ class FishDatabase:
         
         now = datetime.now().isoformat()
         
-        # Evitar duplicados
         cursor.execute('''
             SELECT id FROM subdomains 
             WHERE domain = ? AND subdomain = ?
@@ -291,23 +290,18 @@ class FishDatabase:
         
         stats = {}
         
-        # Total de escaneos
         cursor.execute("SELECT COUNT(*) FROM scans")
         stats['total_scans'] = cursor.fetchone()[0]
         
-        # Escaneos por herramienta
         cursor.execute("SELECT tool, COUNT(*) FROM scans GROUP BY tool")
         stats['scans_by_tool'] = {row[0]: row[1] for row in cursor.fetchall()}
         
-        # Total de handshakes
         cursor.execute("SELECT COUNT(*) FROM handshakes")
         stats['total_handshakes'] = cursor.fetchone()[0]
         
-        # Total de subdominios
         cursor.execute("SELECT COUNT(*) FROM subdomains")
         stats['total_subdomains'] = cursor.fetchone()[0]
         
-        # Total de ubicaciones
         cursor.execute("SELECT COUNT(*) FROM locations")
         stats['total_locations'] = cursor.fetchone()[0]
         
