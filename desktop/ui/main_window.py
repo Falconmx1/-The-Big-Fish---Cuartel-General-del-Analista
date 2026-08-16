@@ -474,4 +474,77 @@ class MainWindow(QMainWindow):
         
         options = {
             'mode': mode,
-            'interface': self.wifi_interface.text().strip() or 'w
+            'interface': self.wifi_interface.text().strip() or 'wlan0'
+        }
+        if self.wifi_channel.text().strip():
+            options['channel'] = int(self.wifi_channel.text())
+        
+        result = self.launcher.launch_tool('wifi_cannon', bssid or 'all', options)
+        if result.get('success'):
+            self.status_bar.showMessage(f"✅ WifiCannon iniciado (ID: {result['scan_id']})")
+            self.wifi_results.append(f"[{datetime.now().strftime('%H:%M:%S')}] "
+                                    f"Iniciado modo: {mode}")
+        else:
+            QMessageBox.critical(self, "Error", result.get('error', 'Error desconocido'))
+    
+    def launch_track(self):
+        target = self.track_target.text().strip()
+        if not target:
+            QMessageBox.warning(self, "Error", "Ingresa un objetivo")
+            return
+        
+        options = {
+            'use_ip': self.track_ip.isChecked(),
+            'use_url': self.track_url.isChecked()
+        }
+        
+        result = self.launcher.launch_tool('fish_track', target, options)
+        if result.get('success'):
+            self.status_bar.showMessage(f"✅ Fish-track iniciado (ID: {result['scan_id']})")
+            self.track_results.append(f"[{datetime.now().strftime('%H:%M:%S')}] "
+                                     f"Iniciado rastreo para {target}")
+        else:
+            QMessageBox.critical(self, "Error", result.get('error', 'Error desconocido'))
+    
+    def launch_nmap(self):
+        target = self.nmap_target.text().strip()
+        if not target:
+            QMessageBox.warning(self, "Error", "Ingresa un objetivo")
+            return
+        
+        scan_types = ["basic", "full", "stealth", "vuln"]
+        scan_type = scan_types[self.nmap_type.currentIndex()]
+        
+        options = {
+            'scan_type': scan_type
+        }
+        if self.nmap_ports.text().strip():
+            options['ports'] = self.nmap_ports.text().strip()
+        
+        result = self.launcher.launch_tool('fish_nmap', target, options)
+        if result.get('success'):
+            self.status_bar.showMessage(f"✅ Fish-nmap iniciado (ID: {result['scan_id']})")
+            self.nmap_results.append(f"[{datetime.now().strftime('%H:%M:%S')}] "
+                                    f"Iniciado escaneo para {target} ({scan_type})")
+        else:
+            QMessageBox.critical(self, "Error", result.get('error', 'Error desconocido'))
+
+def run_desktop():
+    """Ejecuta la aplicación de escritorio."""
+    if not QT_AVAILABLE:
+        print("[!] PyQt5 no instalado. No se puede iniciar el modo escritorio.")
+        return
+    
+    app = QApplication(sys.argv)
+    app.setStyle('Fusion')
+    
+    # Icono de la aplicación
+    app.setWindowIcon(QIcon())
+    
+    window = MainWindow()
+    window.show()
+    
+    sys.exit(app.exec_())
+
+if __name__ == "__main__":
+    run_desktop()
