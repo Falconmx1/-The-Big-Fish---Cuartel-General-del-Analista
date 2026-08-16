@@ -86,7 +86,7 @@ async function apiCall(endpoint, method = 'GET', data = null) {
             options.body = JSON.stringify(data);
         }
         
-        const response = await fetch(endpoint, options);
+        const response = await fetch(endpoint);
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
