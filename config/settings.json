@@ -1,0 +1,35 @@
+{
+    "app_name": "The Big Fish",
+    "version": "1.0.0",
+    "debug": true,
+    "host": "127.0.0.1",
+    "port": 5000,
+    "database": "data/fish.db",
+    "modules": {
+        "fish_recon": {
+            "enabled": true,
+            "description": "Red de pesca - Recolección de datos"
+        },
+        "wifi_cannon": {
+            "enabled": true,
+            "description": "El arpón - Ataques WiFi"
+        },
+        "fish_track": {
+            "enabled": true,
+            "description": "El rastreador - Geolocalización"
+        },
+        "fish_nmap": {
+            "enabled": true,
+            "description": "El sonar - Escaneo de puertos"
+        }
+    },
+    "interfaces": {
+        "web": {
+            "enabled": true,
+            "theme": "dark"
+        },
+        "desktop": {
+            "enabled": false
+        }
+    }
+}
