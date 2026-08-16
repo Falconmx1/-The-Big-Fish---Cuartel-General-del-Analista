@@ -11,17 +11,23 @@ import os
 import json
 import argparse
 from pathlib import Path
+from datetime import datetime
 
 # Añadir el directorio raíz al path para importar módulos
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Intentar importar Flask
 try:
-    from flask import Flask, render_template, jsonify
+    from flask import Flask, render_template, jsonify, request
     FLASK_AVAILABLE = True
 except ImportError:
     FLASK_AVAILABLE = False
     print("[!] Flask no está instalado. Ejecuta: pip install flask")
+
+# Importar módulos core
+from core.database import FishDatabase
+from core.launcher import ToolLauncher
+from core.dashboard import FishDashboard
 
 # Configuración global
 CONFIG_PATH = Path("config/settings.json")
@@ -52,7 +58,6 @@ def load_config():
         with open(CONFIG_PATH, 'r') as f:
             try:
                 config = json.load(f)
-                # Actualizar con valores por defecto si faltan
                 for key, value in default_config.items():
                     if key not in config:
                         config[key] = value
@@ -70,6 +75,11 @@ def load_config():
 # Cargar configuración al iniciar
 config = load_config()
 
+# Inicializar componentes
+db = FishDatabase(DB_PATH)
+launcher = ToolLauncher(db)
+dashboard = FishDashboard(db, launcher)
+
 def create_web_app():
     """Crea y configura la aplicación web Flask."""
     if not FLASK_AVAILABLE:
@@ -86,19 +96,84 @@ def create_web_app():
         """Página principal del dashboard."""
         return render_template('index.html', config=config)
 
-    @app.route('/api/status')
-    def api_status():
-        """API simple para verificar el estado."""
-        return jsonify({
-            "status": "online",
-            "app": config.get("app_name"),
-            "version": config.get("version")
-        })
+    @app.route('/api/dashboard')
+    def api_dashboard():
+        """API para obtener datos del dashboard."""
+        try:
+            data = dashboard.get_dashboard_data()
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/launch', methods=['POST'])
+    def api_launch():
+        """API para lanzar una herramienta."""
+        try:
+            data = request.get_json()
+            tool = data.get('tool')
+            target = data.get('target')
+            options = data.get('options', {})
+            
+            if not tool:
+                return jsonify({'error': 'Tool name required'}), 400
+            
+            result = launcher.launch_tool(tool, target, options)
+            return jsonify(result)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/stop/<int:scan_id>', methods=['POST'])
+    def api_stop(scan_id):
+        """API para detener un proceso."""
+        try:
+            result = launcher.stop_tool(scan_id)
+            return jsonify({'success': result})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/scan/<int:scan_id>')
+    def api_scan(scan_id):
+        """API para obtener detalles de un escaneo."""
+        try:
+            scan = launcher.get_scan_status(scan_id)
+            if scan:
+                return jsonify(scan)
+            return jsonify({'error': 'Scan not found'}), 404
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/history')
+    def api_history():
+        """API para obtener el historial."""
+        try:
+            scans = db.get_scans(limit=100)
+            return jsonify({'scans': scans})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/history/clear', methods=['POST'])
+    def api_history_clear():
+        """API para limpiar el historial."""
+        try:
+            # Implementar limpieza
+            return jsonify({'success': True})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
 
     @app.route('/api/modules')
     def api_modules():
         """API para listar los módulos disponibles."""
         return jsonify(config.get("modules", {}))
+
+    @app.route('/api/status')
+    def api_status():
+        """API para verificar el estado."""
+        return jsonify({
+            "status": "online",
+            "app": config.get("app_name"),
+            "version": config.get("version"),
+            "timestamp": datetime.now().isoformat()
+        })
 
     return app
 
@@ -125,7 +200,7 @@ def run_web_mode():
         app.run(host=host, port=port, debug=debug)
 
 def run_cli_mode():
-    """Ejecuta el modo CLI (por implementar)."""
+    """Ejecuta el modo CLI."""
     print("  🐟 The Big Fish v{}".format(config.get('version')))
     print("  ============================================")
     print("  ▶ Modo CLI en desarrollo. Próximamente...")
@@ -139,7 +214,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # Si no se especifica modo, mostrar ayuda
     if not (args.web or args.cli or args.desktop):
         parser.print_help()
         print("\n  Usa --web para iniciar el panel web.")
